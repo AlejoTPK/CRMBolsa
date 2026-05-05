@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "skills": {
+    "fetch": {
+      "source": "browserbase/skills",
+      "sourceType": "github",
+      "computedHash": "700142334027ed7359eae10422f70e9f35cc62383a8dc36d14bf3418cc7aedc9"
+    },
+    "git-commit": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/git-commit/SKILL.md",
+      "computedHash": "2607fc60629b82b257136dd2a7a373f0a4466c0b49df7746d845d59313c99b21"
+    }
+  }
+}

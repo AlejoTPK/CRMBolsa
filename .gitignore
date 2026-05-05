@@ -1,0 +1,75 @@
+# ─── Entorno virtual ───────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ─── Variables de entorno / Secretos ───────────────────────
+.env
+.env.*
+*.pem
+*.key
+secrets.json
+credentials.json
+
+# ─── Python ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.manifest
+
+# ─── Base de datos local ────────────────────────────────────
+*.db
+*.sqlite3
+*.sqlite
+
+# ─── Reflex ────────────────────────────────────────────────
+.web/
+.states/
+.reflex/
+
+# ─── Alembic ────────────────────────────────────────────────
+# Mantener alembic/versions pero ignorar caché
+alembic/__pycache__/
+
+# ─── Logs ──────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── IDEs / Editores ───────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+*.swp
+*.swo
+*~
+
+# ─── Sistema operativo ─────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Mypy / Pytest / Coverage ──────────────────────────────
+.mypy_cache/
+.dmypy.json
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ─── Node (por si Reflex genera assets) ────────────────────
+node_modules/

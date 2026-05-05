@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+reflex>=0.4.5
+python-dotenv
+pydantic
+yfinance
+pandas
+groq
+sqlalchemy
+asyncpg
+alembic
+websockets
+plotly
