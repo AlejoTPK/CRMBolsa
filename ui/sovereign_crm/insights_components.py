@@ -249,10 +249,10 @@ def _leccion_card() -> rx.Component:
     )
 
 
-def daily_summary_panel() -> rx.Component:
+def combined_daily_summary_panel() -> rx.Component:
     """
-    Panel completo del Resumen Diario.
-    Incluye: Título, Resumen de Oro, Resumen de Petróleo y Lección del Día.
+    Panel completo del Resumen Diario Unificado.
+    Incluye: Título, Resumen de Oro, Resumen de Petróleo y Lección del Día en conjunto.
     """
     return rx.box(
         rx.vstack(
@@ -316,81 +316,40 @@ def daily_summary_panel() -> rx.Component:
                         margin_bottom="0.5rem",
                     ),
 
-                    # Grid Oro / Petróleo
+                    # Grid con los dos activos (Oro y Petróleo)
                     rx.grid(
-                        # Resumen Oro
+                        # Caja de Oro
                         rx.box(
                             rx.vstack(
                                 rx.hstack(
-                                    rx.box(
-                                        width="10px",
-                                        height="10px",
-                                        bg=COLORS["primary"],
-                                        border_radius="3px",
-                                    ),
-                                    rx.text(
-                                        "ORO — XAU/USD",
-                                        color=COLORS["primary"],
-                                        size="1",
-                                        font_weight="700",
-                                        letter_spacing="1px",
-                                    ),
+                                    rx.box(width="10px", height="10px", bg=COLORS["primary"], border_radius="3px"),
+                                    rx.text("ORO — XAU/USD", color=COLORS["primary"], size="1", font_weight="700", letter_spacing="1px"),
                                     align_items="center",
                                     spacing="2",
                                 ),
-                                rx.text(
-                                    InsightsState.resumen_oro,
-                                    color=COLORS["text_muted"],
-                                    size="2",
-                                    line_height="1.6",
-                                ),
-                                spacing="2",
-                                align_items="start",
+                                rx.text(InsightsState.resumen_oro, color=COLORS["text_muted"], size="2", line_height="1.6"),
+                                spacing="2", align_items="start",
                             ),
-                            padding="1rem",
-                            bg=COLORS["surface_high"],
-                            border_radius="10px",
-                            border_left=f"3px solid {COLORS['primary']}",
+                            padding="1rem", bg=COLORS["surface_high"], border_radius="10px", border_left=f"3px solid {COLORS['primary']}", width="100%", height="100%"
                         ),
-
-                        # Resumen Petróleo
+                        # Caja de Petróleo
                         rx.box(
                             rx.vstack(
                                 rx.hstack(
-                                    rx.box(
-                                        width="10px",
-                                        height="10px",
-                                        bg="#B0C4DE",
-                                        border_radius="3px",
-                                    ),
-                                    rx.text(
-                                        "PETRÓLEO — WTI",
-                                        color="#B0C4DE",
-                                        size="1",
-                                        font_weight="700",
-                                        letter_spacing="1px",
-                                    ),
+                                    rx.box(width="10px", height="10px", bg="#B0C4DE", border_radius="3px"),
+                                    rx.text("PETRÓLEO — WTI", color="#B0C4DE", size="1", font_weight="700", letter_spacing="1px"),
                                     align_items="center",
                                     spacing="2",
                                 ),
-                                rx.text(
-                                    InsightsState.resumen_petroleo,
-                                    color=COLORS["text_muted"],
-                                    size="2",
-                                    line_height="1.6",
-                                ),
-                                spacing="2",
-                                align_items="start",
+                                rx.text(InsightsState.resumen_petroleo, color=COLORS["text_muted"], size="2", line_height="1.6"),
+                                spacing="2", align_items="start",
                             ),
-                            padding="1rem",
-                            bg=COLORS["surface_high"],
-                            border_radius="10px",
-                            border_left="3px solid #B0C4DE",
+                            padding="1rem", bg=COLORS["surface_high"], border_radius="10px", border_left="3px solid #B0C4DE", width="100%", height="100%"
                         ),
-
                         columns="2",
                         spacing="4",
                         width="100%",
+                        margin_bottom="1rem"
                     ),
 
                     # Lección del Día
@@ -448,6 +407,7 @@ def daily_summary_panel() -> rx.Component:
         border=f"1px solid {COLORS['text_muted']}20",
         box_shadow="0 8px 24px rgba(0,0,0,0.3)",
         width="100%",
+        margin_bottom="2rem"
     )
 
 
@@ -484,8 +444,8 @@ def sovereign_insights_panel() -> rx.Component:
         # Tarjeta de Alerta Rápida
         quick_alert_card(),
 
-        # Panel de Resumen Diario
-        daily_summary_panel(),
+        # Panel de Resumen Diario Unificado
+        combined_daily_summary_panel(),
 
         spacing="4",
         align_items="start",

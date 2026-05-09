@@ -1,5 +1,5 @@
 import reflex as rx
-
+import plotly.graph_objects as go
 # Obsidian Sovereign Design Tokens
 COLORS = {
     "background": "#121317",
@@ -39,89 +39,97 @@ def glass_card(*children, **kwargs) -> rx.Component:
         **kwargs
     )
 
-def kpi_card(title: str, price_str: str, change_str: str, is_positive: rx.Var[bool], status: str) -> rx.Component:
-    """Dashboard KPI card showing real-time price and change."""
+def kpi_card(title: str, price_str: str, change_str: str, is_positive: rx.Var[bool], status: str, sparkline_fig: rx.Var[go.Figure]) -> rx.Component:
+    """Dashboard KPI card showing real-time price, change, and sparkline."""
     
     # Conditional formatting based on price change
     trend_color = rx.cond(is_positive, COLORS["success"], COLORS["error"])
-    trend_icon = rx.cond(is_positive, "trending-up", "trending-down")
     
     return glass_card(
-        rx.vstack(
-            rx.hstack(
-                rx.text(title, color=COLORS["text_muted"], font_size="0.9rem", text_transform="uppercase", letter_spacing="1px"),
-                rx.tooltip(
-                    rx.icon("circle-help", size=14, color=COLORS["text_muted"]),
-                    content=f"Cotización en tiempo real para {title}",
-                    side="top"
+        rx.hstack(
+            # Left side: Text data
+            rx.vstack(
+                rx.text(title, color=COLORS["text_muted"], font_size="1.1rem", font_weight="bold"),
+                rx.text(
+                    price_str,
+                    color=COLORS["text_main"],
+                    font_size="2.2rem",
+                    font_weight="bold",
+                    line_height="1.2"
                 ),
-                justify="between",
-                width="100%"
-            ),
-            rx.text(
-                price_str,
-                color=COLORS["text_main"],
-                font_size="2.5rem",
-                font_family="serif",
-                line_height="1.2"
-            ),
-            rx.hstack(
-                rx.icon(trend_icon, color=trend_color, size=18),
                 rx.text(
                     change_str,
                     color=trend_color,
-                    font_weight="bold"
+                    font_weight="bold",
+                    font_size="1rem"
                 ),
-                rx.spacer(),
-                rx.badge(
-                    status,
-                    color_scheme=rx.cond(status == "LIVE", "yellow", "gray"),
-                    variant="surface"
-                ),
-                width="100%",
-                align_items="center"
+                spacing="1",
+                align_items="start",
             ),
-            spacing="3",
-            align_items="start",
-            width="100%"
-        )
+            rx.spacer(),
+            # Right side: Sparkline
+            rx.box(
+                rx.plotly(data=sparkline_fig, height="40px", width="100px", config={"displayModeBar": False}),
+                display="flex",
+                align_items="end",
+                justify_content="flex-end"
+            ),
+            width="100%",
+            align_items="center"
+        ),
+        padding="1rem 1.5rem"
     )
 
-def sidebar() -> rx.Component:
-    """The minimalist navigation sidebar."""
-    return rx.vstack(
-        rx.heading("Sovereign", size="7", color=COLORS["primary"], font_family="serif", margin_bottom="2rem"),
-        rx.vstack(
-            rx.link(rx.hstack(rx.icon("layout-dashboard"), rx.text("Dashboard")), color=COLORS["text_main"], opacity=1.0),
-            rx.link(rx.hstack(rx.icon("pie-chart"), rx.text("Portafolio")), color=COLORS["text_muted"], _hover={"color": COLORS["text_main"]}),
-            rx.link(rx.hstack(rx.icon("newspaper"), rx.text("Noticias")), color=COLORS["text_muted"], _hover={"color": COLORS["text_main"]}),
-            spacing="5",
-            align_items="start",
-            width="100%"
-        ),
-        rx.spacer(),
-        rx.divider(border_color=COLORS["text_muted"], opacity=0.2),
+def navbar() -> rx.Component:
+    from .state import AppState
+    """The main navigation top bar."""
+    return rx.hstack(
         rx.hstack(
-            rx.avatar(name="Inversor Beta", fallback="IB", bg=COLORS["primary_subtle"], color=COLORS["primary"]),
-            rx.vstack(
-                rx.text("Inversor Beta", color=COLORS["text_main"], font_weight="bold", size="2"),
-                rx.text("Premium Tier", color=COLORS["primary"], size="1"),
-                spacing="0",
-                align_items="start"
+            rx.heading("Sovereign", size="6", color=COLORS["primary"], font_family="serif"),
+            rx.spacer(),
+            rx.hstack(
+                rx.link(rx.hstack(rx.icon("layout-dashboard"), rx.text("Dashboard")), 
+                        color=rx.cond(AppState.current_page == "Dashboard", COLORS["text_main"], COLORS["text_muted"]), 
+                        on_click=AppState.set_page("Dashboard"), cursor="pointer", _hover={"color": COLORS["text_main"]}),
+                rx.link(rx.hstack(rx.icon("pie-chart"), rx.text("Portafolio")), 
+                        color=rx.cond(AppState.current_page == "Portafolio", COLORS["text_main"], COLORS["text_muted"]), 
+                        on_click=AppState.set_page("Portafolio"), cursor="pointer", _hover={"color": COLORS["text_main"]}),
+                rx.link(rx.hstack(rx.icon("newspaper"), rx.text("Noticias & Análisis")), 
+                        color=rx.cond(AppState.current_page == "Noticias", COLORS["text_main"], COLORS["text_muted"]), 
+                        on_click=AppState.set_page("Noticias"), cursor="pointer", _hover={"color": COLORS["text_main"]}),
+                spacing="5",
+                align_items="center"
             ),
-            padding_top="1rem",
+            rx.spacer(),
+            rx.hstack(
+                rx.avatar(name="Inversor Beta", fallback="IB", bg=COLORS["primary_subtle"], color=COLORS["primary"], size="2"),
+                rx.vstack(
+                    rx.text("Inversor Beta", color=COLORS["text_main"], font_weight="bold", size="2"),
+                    rx.text("Premium Tier", color=COLORS["primary"], size="1"),
+                    spacing="0",
+                    align_items="start"
+                ),
+                align_items="center",
+                spacing="3"
+            ),
+            width="100%",
+            max_width="1400px",
+            margin="0 auto",
             align_items="center"
         ),
         bg=COLORS["surface"],
-        padding="2rem",
-        height="100vh",
-        width="250px",
-        border_right=f"1px solid {COLORS['text_muted']}25"
+        padding="1rem 2rem",
+        width="100%",
+        border_bottom=f"1px solid {COLORS['text_muted']}25",
+        position="sticky",
+        top="0",
+        z_index="999"
     )
 OIL_COLOR = "#B0C4DE"   # Steel blue / silver
 
 def candlestick_chart(title: str, symbol: str, fig: rx.Var, color: str) -> rx.Component:
     """Generic Candlestick chart component using Plotly natively in Reflex."""
+    from .state import AppState
     return rx.vstack(
         # Chart header with legend
         rx.hstack(
@@ -131,7 +139,18 @@ def candlestick_chart(title: str, symbol: str, fig: rx.Var, color: str) -> rx.Co
                 align_items="center", spacing="2"
             ),
             rx.spacer(),
-            rx.text("Tendencia 30 días", color=COLORS["text_muted"], size="1"),
+            rx.hstack(
+                rx.button("1D", size="1", variant=rx.cond(AppState.global_time_period == "1d", "solid", "soft"), color_scheme="gray", on_click=AppState.change_time_period("1d"), cursor="pointer"),
+                rx.button("1W", size="1", variant=rx.cond(AppState.global_time_period == "5d", "solid", "soft"), color_scheme="gray", on_click=AppState.change_time_period("5d"), cursor="pointer"),
+                rx.button("1M", size="1", variant=rx.cond(AppState.global_time_period == "1mo", "solid", "soft"), color_scheme="gray", on_click=AppState.change_time_period("1mo"), cursor="pointer"),
+                rx.button("3M", size="1", variant=rx.cond(AppState.global_time_period == "3mo", "solid", "soft"), color_scheme="gray", on_click=AppState.change_time_period("3mo"), cursor="pointer"),
+                rx.button("1Y", size="1", variant=rx.cond(AppState.global_time_period == "1y", "solid", "soft"), color_scheme="gray", on_click=AppState.change_time_period("1y"), cursor="pointer"),
+                spacing="1",
+                bg=COLORS["surface_high"],
+                padding="0.25rem",
+                border_radius="6px",
+                border=f"1px solid {COLORS['text_muted']}25"
+            ),
             width="100%",
             align_items="center",
             margin_bottom="0.75rem"
