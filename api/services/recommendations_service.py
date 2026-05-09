@@ -1,5 +1,6 @@
 import os
 import json
+import random
 import yfinance as yf
 from groq import AsyncGroq
 from dotenv import load_dotenv
@@ -51,6 +52,17 @@ async def generar_recomendacion(ticker: str) -> RecomendacionIA:
         
     nombre_activo = "Oro (XAU/USD)" if ticker.upper() == "XAU" else "Petróleo Crudo (WTI)"
     
+    # Inyectar aleatoriedad en el enfoque pedagógico para que no repita siempre lo mismo
+    enfoques = [
+        "gestión de riesgos (ej. stop loss, no invertir más de lo que se puede perder)",
+        "análisis macroeconómico (ej. impacto de la inflación, tasas de interés, dólar)",
+        "psicología del trading (ej. controlar el FOMO, tener paciencia, evitar pánico)",
+        "análisis técnico básico (ej. identificar tendencias, soportes, volumen)",
+        "contexto histórico (ej. cómo se ha comportado históricamente ante crisis)",
+        "correlaciones del mercado (ej. relación entre materias primas y otras divisas)"
+    ]
+    enfoque_seleccionado = random.choice(enfoques)
+    
     prompt = f"""
     Eres el analista de IA experto de "Sovereign CRM", enfocado en enseñar a inversores novatos.
     El usuario solicita una sugerencia pedagógica sobre {nombre_activo}.
@@ -60,12 +72,16 @@ async def generar_recomendacion(ticker: str) -> RecomendacionIA:
     - Precio hace 5 días: ${contexto["precio_hace_5_dias"]}
     - Variación en 5 días: {contexto["variacion_5d_pct"]}% ({contexto["direccion"]})
     
+    INSTRUCCIÓN DE VARIEDAD MUY IMPORTANTE: 
+    Para evitar dar siempre los mismos consejos genéricos, en esta ocasión enfoca tus sugerencias PRINCIPALMENTE en: **{enfoque_seleccionado}**. 
+    Usa analogías frescas y sé original. NUNCA repitas el mismo texto de sugerencias anteriores.
+    
     REGLAS DE RESPUESTA:
     - Responde ÚNICAMENTE con un objeto JSON válido.
     - El JSON debe tener exactamente estos campos:
       - "ticker": string (debe ser "{ticker.upper()}")
       - "tendencia_corta": string ("ALCISTA", "BAJISTA" o "LATERAL")
-      - "sugerencias_pedagogicas": array de strings (Lista de al menos 2 sugerencias u observaciones educativas fáciles de entender sobre qué hacer o mirar)
+      - "sugerencias_pedagogicas": array de strings (Lista de al menos 2 sugerencias educativas ÚNICAS y CREATIVAS, enfocadas en el tema solicitado)
       - "disclaimer_obligatorio": string (Obligatorio escribir: "Solo con fines educativos, no es asesoría financiera.")
     """
     
@@ -74,7 +90,7 @@ async def generar_recomendacion(ticker: str) -> RecomendacionIA:
         messages=[
             {
                 "role": "system",
-                "content": "Eres un asistente financiero pedagógico. Respondes exclusivamente en formato JSON."
+                "content": "Eres un asistente financiero pedagógico creativo. Respondes exclusivamente en formato JSON."
             },
             {
                 "role": "user",
@@ -82,7 +98,7 @@ async def generar_recomendacion(ticker: str) -> RecomendacionIA:
             },
         ],
         response_format={"type": "json_object"},
-        temperature=0.5,
+        temperature=0.85,
         max_tokens=500,
     )
     

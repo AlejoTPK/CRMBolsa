@@ -37,15 +37,19 @@ async def process_finnhub_message(message: str):
                 dt_obj = datetime.fromtimestamp(timestamp_ms / 1000.0).astimezone()
 
                 # 1. Guardar en PostgreSQL (TimescaleDB)
-                async with async_session() as session:
-                    tick = MarketTick(
-                        timestamp=dt_obj,
-                        symbol=symbol,
-                        price=price,
-                        volume=volume
-                    )
-                    session.add(tick)
-                    await session.commit()
+                try:
+                    async with async_session() as session:
+                        tick = MarketTick(
+                            timestamp=dt_obj,
+                            symbol=symbol,
+                            price=price,
+                            volume=volume
+                        )
+                        session.add(tick)
+                        await session.commit()
+                except Exception as db_e:
+                    # Si el tick ya existe (IntegrityError de llave duplicada) lo ignoramos para no bloquear el flujo
+                    pass
 
                 # 2. Broadcast a los clientes de Reflex
                 tick_payload = {

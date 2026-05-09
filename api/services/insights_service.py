@@ -10,6 +10,7 @@ import asyncio
 import datetime
 import json
 import os
+import random
 from typing import Optional
 
 import pandas as pd
@@ -52,7 +53,7 @@ async def call_llm(prompt: str) -> str:
             },
         ],
         response_format={"type": "json_object"},
-        temperature=0.4,
+        temperature=0.8,
         max_tokens=1024,
     )
     return chat_completion.choices[0].message.content
@@ -243,6 +244,20 @@ async def generar_resumen_diario() -> ResumenDiario:
     contexto_xau = _fmt(datos.get("XAU", {"error": "Sin datos"}), "ORO (XAU/USD)")
     contexto_wti = _fmt(datos.get("WTI", {"error": "Sin datos"}), "PETRÓLEO (WTI)")
 
+    conceptos_leccion = [
+        "El interés compuesto",
+        "Diversificación de portafolios",
+        "Qué es la inflación y cómo afecta las inversiones",
+        "La relación entre el dólar y las materias primas",
+        "El ciclo económico y los commodities",
+        "Diferencia entre Análisis Técnico y Análisis Fundamental",
+        "El riesgo sistemático vs no sistemático",
+        "Qué es el volumen de trading y por qué importa",
+        "El efecto de las tasas de interés en los mercados",
+        "Bulls (Toros) vs Bears (Osos): Psicología del mercado"
+    ]
+    tema_leccion = random.choice(conceptos_leccion)
+
     prompt = f"""
 Eres el analista de "Sovereign", un CRM financiero pedagógico para inversores novatos.
 Tu misión es generar el Resumen Diario del mercado, combinando los datos reales del día
@@ -260,11 +275,11 @@ REGLAS DE RESPUESTA:
   - "resumen_oro": string (2-3 oraciones, análisis del XAU/USD en lenguaje simple)
   - "resumen_petroleo": string (2-3 oraciones, análisis del WTI en lenguaje simple)
   - "leccion_del_dia": objeto con:
-      - "concepto": string (concepto financiero relevante al día de hoy)
-      - "explicacion": string (explicación de 3-4 oraciones, sin jerga, para un principiante)
+      - "concepto": string (Debe estar obligatoriamente relacionado con el tema: "{tema_leccion}")
+      - "explicacion": string (explicación de 3-4 oraciones sobre "{tema_leccion}", sin jerga, para un principiante, usando alguna analogía interesante)
 
 IMPORTANTE: El tono debe ser informativo pero cálido. El lector es un novato que quiere
-aprender finanzas, no un trader experto.
+aprender finanzas, no un trader experto. NUNCA repitas lecciones de días anteriores. Sé original.
 """
 
     respuesta_llm = await call_llm(prompt)
