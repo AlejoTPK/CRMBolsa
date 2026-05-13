@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Float, DateTime
+from sqlalchemy import Column, String, Float, DateTime, Integer, Text, Date
+import datetime
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -15,3 +16,26 @@ class MarketTick(Base):
     symbol = Column(String, primary_key=True, index=True)
     price = Column(Float, nullable=False)
     volume = Column(Float, nullable=False)
+
+class DBAlertaMercado(Base):
+    """Almacena alertas de anomalías de mercado generadas por la IA."""
+    __tablename__ = "alertas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    tipo_alerta = Column(String, index=True)
+    titulo = Column(String(80))
+    mensaje = Column(Text)
+    nivel_severidad = Column(String)
+
+class DBResumenDiario(Base):
+    """Almacena el resumen pedagógico diario del mercado."""
+    __tablename__ = "resumenes_diarios"
+
+    id = Column(Integer, primary_key=True, index=True)
+    fecha_resumen = Column(Date, unique=True, index=True)
+    titulo_jornada = Column(String)
+    resumen_oro = Column(Text)
+    resumen_petroleo = Column(Text)
+    leccion_concepto = Column(String)
+    leccion_explicacion = Column(Text)

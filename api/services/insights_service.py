@@ -19,6 +19,8 @@ from dotenv import load_dotenv
 from groq import AsyncGroq
 
 from api.models.insights import AlertaMercado, ResumenDiario, LeccionDelDia
+from db.database import async_session
+from db.models import DBAlertaMercado, DBResumenDiario
 
 load_dotenv()
 
@@ -33,7 +35,7 @@ async def call_llm(prompt: str) -> str:
     Retorna el contenido de la respuesta como string JSON.
     
     - response_format json_object: garantiza que Groq devuelva JSON válido.
-    - temperature 0.4: respuestas precisas pero con algo de naturalidad narrativa.
+    - temperature 0.3: respuestas precisas y técnicas, evitando redundancias filosóficas.
     - max_tokens 1024: suficiente para los JSONs de alertas y resúmenes.
     """
     chat_completion = await _groq_client.chat.completions.create(
@@ -53,7 +55,7 @@ async def call_llm(prompt: str) -> str:
             },
         ],
         response_format={"type": "json_object"},
-        temperature=0.8,
+        temperature=0.3,
         max_tokens=1024,
     )
     return chat_completion.choices[0].message.content
@@ -142,7 +144,19 @@ EJEMPLO DE FORMATO:
                     datos_alerta = json.loads(respuesta_llm)
                     alerta = AlertaMercado(**datos_alerta)
                     _ultima_alerta_cache = alerta
-                    print(f"[Insights Monitor] ✅ Alerta generada: {alerta.titulo}")
+                    
+                    # Persistencia en Base de Datos (PostgreSQL)
+                    async with async_session() as session:
+                        db_alerta = DBAlertaMercado(
+                            tipo_alerta=alerta.tipo_alerta,
+                            titulo=alerta.titulo,
+                            mensaje=alerta.mensaje,
+                            nivel_severidad=alerta.nivel_severidad
+                        )
+                        session.add(db_alerta)
+                        await session.commit()
+                        
+                    print(f"[Insights Monitor] ✅ Alerta generada y guardada: {alerta.titulo}")
                 except Exception as e:
                     print(f"[Insights Monitor] ❌ Error al generar alerta LLM: {e}")
 
@@ -287,4 +301,67 @@ aprender finanzas, no un trader experto. NUNCA repitas lecciones de días anteri
 
     # Pydantic valida la estructura antes de retornar
     resumen = ResumenDiario(**datos_resumen)
+
+    # Persistencia en Base de Datos (PostgreSQL)
+    try:
+        async with async_session() as session:
+            db_resumen = DBResumenDiario(
+                fecha_resumen=datetime.datetime.strptime(resumen.fecha_resumen, "%Y-%m-%d").date(),
+                titulo_jornada=resumen.titulo_jornada,
+                resumen_oro=resumen.resumen_oro,
+                resumen_petroleo=resumen.resumen_petroleo,
+                leccion_concepto=resumen.leccion_del_dia.concepto,
+                leccion_explicacion=resumen.leccion_del_dia.explicacion
+            )
+            session.add(db_resumen)
+            await session.commit()
+            print(f"[Insights Service] ✅ Resumen diario guardado en DB para la fecha {resumen.fecha_resumen}")
+    except Exception as e:
+        print(f"[Insights Service] ⚠️ Error al persistir resumen en DB: {e}")
+
     return resumen
+
+
+# ---------------------------------------------------------------------------
+# MÓDULO 1C: ANÁLISIS DE SENTIMIENTO DE NOTICIAS
+# ---------------------------------------------------------------------------
+
+async def analyze_news_sentiments(news_items: list[dict]) -> list[dict]:
+    """
+    Recibe una lista de noticias, extrae los titulares y consulta al LLM
+    para determinar el sentimiento (Alcista, Bajista, Neutral) en bloque.
+    """
+    if not news_items:
+        return []
+
+    # Construir el diccionario de titulares
+    titulares_dict = {str(i): item["title"] for i, item in enumerate(news_items)}
+
+    prompt = f"""
+    Eres un analista financiero experto. Evalúa el sentimiento del mercado para los siguientes titulares de noticias.
+    Determina si la noticia tiene un sentimiento "Alcista" (Bullish), "Bajista" (Bearish) o "Neutral" respecto a la materia prima o el mercado general.
+
+    TITULARES:
+    {json.dumps(titulares_dict, ensure_ascii=False, indent=2)}
+
+    REGLAS DE RESPUESTA:
+    - Responde ÚNICAMENTE con un objeto JSON válido.
+    - El objeto JSON debe tener como claves los índices (ej. "0", "1", "2") y como valores el sentimiento asignado: "Alcista", "Bajista" o "Neutral".
+    - No añadas explicaciones ni markdown.
+    """
+
+    try:
+        respuesta_llm = await call_llm(prompt)
+        sentimientos_json = json.loads(respuesta_llm)
+
+        # Inyectar el sentimiento en la lista original
+        for i, item in enumerate(news_items):
+            item["sentiment"] = sentimientos_json.get(str(i), "Neutral")
+
+    except Exception as e:
+        print(f"[Insights Service] Error al analizar sentimiento de noticias: {e}")
+        # Fallback de seguridad en caso de error
+        for item in news_items:
+            item["sentiment"] = "Neutral"
+
+    return news_items
