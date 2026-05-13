@@ -28,6 +28,7 @@ def get_realtime_price(symbol: str) -> Dict[str, Any]:
         result = {
             "symbol": symbol,
             "price": round(current_price, 2),
+            "open_price": round(open_price, 2),
             "change": round(change, 2),
             "change_percent": round(change_percent, 2),
             "status": "LIVE",

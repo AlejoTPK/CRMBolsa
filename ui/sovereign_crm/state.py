@@ -13,8 +13,8 @@ API_URL = os.getenv("API_URL", "http://127.0.0.1:8001")
 class AppState(rx.State):
     """The central state for the Reflex UI."""
     # Data states
-    gold_data: Dict[str, Any] = {"symbol": "XAU", "price": 0.0, "change": 0.0, "change_percent": 0.0, "status": "LOADING"}
-    oil_data: Dict[str, Any] = {"symbol": "WTI", "price": 0.0, "change": 0.0, "change_percent": 0.0, "status": "LOADING"}
+    gold_data: Dict[str, Any] = {"symbol": "XAU", "price": 0.0, "open_price": 0.0, "change": 0.0, "change_percent": 0.0, "status": "LOADING"}
+    oil_data: Dict[str, Any] = {"symbol": "WTI", "price": 0.0, "open_price": 0.0, "change": 0.0, "change_percent": 0.0, "status": "LOADING"}
     gold_historical: list[Dict[str, Any]] = []
     oil_historical: list[Dict[str, Any]] = []
     news_items: list[Dict[str, Any]] = []
@@ -405,24 +405,36 @@ class AppState(rx.State):
                                 for symbol, data in buffer.items():
                                     price = data["price"]
                                     
-                                    # Lógica simple para actualizar Oro o Petróleo
                                     if "XAU" in symbol:
-                                        # Fake calculation of change for visual effect
-                                        change = price - self.gold_data.get("price", price)
-                                        pct = (change / self.gold_data.get("price", 1)) * 100
+                                        # Usar open_price del día como referencia (viene del fetch HTTP)
+                                        open_price = self.gold_data.get("open_price", 0.0)
+                                        if open_price and open_price > 0:
+                                            change = price - open_price
+                                            pct = (change / open_price) * 100
+                                        else:
+                                            # Fallback si no hay open_price: mantener los valores previos
+                                            change = self.gold_data.get("change", 0.0)
+                                            pct = self.gold_data.get("change_percent", 0.0)
                                         self.gold_data.update({
-                                            "price": price, 
-                                            "change": self.gold_data.get("change", 0) + change,
-                                            "change_percent": pct,
+                                            "price": round(price, 2),
+                                            "change": round(change, 2),
+                                            "change_percent": round(pct, 2),
                                             "status": "LIVE"
                                         })
                                     elif "WTI" in symbol or "CL=F" in symbol:
-                                        change = price - self.oil_data.get("price", price)
-                                        pct = (change / self.oil_data.get("price", 1)) * 100
+                                        # Usar open_price del día como referencia (viene del fetch HTTP)
+                                        open_price = self.oil_data.get("open_price", 0.0)
+                                        if open_price and open_price > 0:
+                                            change = price - open_price
+                                            pct = (change / open_price) * 100
+                                        else:
+                                            # Fallback si no hay open_price: mantener los valores previos
+                                            change = self.oil_data.get("change", 0.0)
+                                            pct = self.oil_data.get("change_percent", 0.0)
                                         self.oil_data.update({
-                                            "price": price, 
-                                            "change": self.oil_data.get("change", 0) + change,
-                                            "change_percent": pct,
+                                            "price": round(price, 2),
+                                            "change": round(change, 2),
+                                            "change_percent": round(pct, 2),
                                             "status": "LIVE"
                                         })
                             # Limpiar buffer y reiniciar temporizador
