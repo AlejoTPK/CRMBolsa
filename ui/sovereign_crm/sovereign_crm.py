@@ -1,7 +1,7 @@
 import reflex as rx
 from .state import AppState
 from .components import navbar, kpi_card, candlestick_chart, news_card, COLORS
-from .insights_components import quick_alert_card, combined_daily_summary_panel
+from .insights_components import quick_alert_card, combined_daily_summary_panel, insights_history_panel
 from .insights_state import InsightsState
 
 from .ai_recommendation_card import ai_recommendation_widget
@@ -170,6 +170,9 @@ def noticias_view() -> rx.Component:
             width="100%"
         ),
         
+        # Historial de Inteligencia (Desde DB)
+        insights_history_panel(),
+        
         width="100%",
         max_width="1400px",
         margin="0 auto",
@@ -282,5 +285,5 @@ app = rx.App(
 app.add_page(
     index,
     title="Sovereign CRM | Dashboard",
-    on_load=[AppState.fetch_market_quotes, AppState.listen_market_ws, InsightsState.fetch_latest_alert]
+    on_load=[AppState.fetch_market_quotes, AppState.listen_market_ws, InsightsState.fetch_latest_alert, InsightsState.fetch_history]
 )

@@ -98,7 +98,7 @@ async def generar_recomendacion(ticker: str) -> RecomendacionIA:
             },
         ],
         response_format={"type": "json_object"},
-        temperature=0.85,
+        temperature=0.3,
         max_tokens=500,
     )
     
