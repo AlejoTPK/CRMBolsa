@@ -381,6 +381,7 @@ def combined_daily_summary_panel() -> rx.Component:
                         align="center",
                     ),
                     padding="2.5rem",
+                    width="100%",
                 ),
             ),
 
@@ -450,4 +451,134 @@ def sovereign_insights_panel() -> rx.Component:
         spacing="4",
         align_items="start",
         width="100%",
+    )
+
+
+# ---------------------------------------------------------------------------
+# COMPONENTE 3: Historial de Insights (Alertas y Resúmenes)
+# ---------------------------------------------------------------------------
+
+def _historical_alert_item(item: rx.Var[dict]) -> rx.Component:
+    """Renderiza una alerta individual del historial."""
+    return rx.box(
+        rx.vstack(
+            rx.hstack(
+                rx.badge(item["tipo_alerta"], size="1", variant="surface"),
+                rx.spacer(),
+                rx.badge(
+                    item["nivel_severidad"], 
+                    size="1", 
+                    variant="solid",
+                    color_scheme=rx.cond(
+                        item["nivel_severidad"] == "CRITICO", "red",
+                        rx.cond(item["nivel_severidad"] == "MODERADO", "yellow", "green")
+                    )
+                ),
+                width="100%",
+            ),
+            rx.text(item["titulo"], color=COLORS["text_main"], font_weight="700", size="2"),
+            rx.text(item["mensaje"], color=COLORS["text_muted"], size="1", line_height="1.5"),
+            spacing="2",
+            align_items="start",
+        ),
+        padding="1rem",
+        bg=COLORS["surface_high"],
+        border_radius="8px",
+        border_left=f"2px solid {COLORS['text_muted']}40",
+        width="100%",
+    )
+
+def _historical_summary_item(item: rx.Var[dict]) -> rx.Component:
+    """Renderiza un resumen individual del historial."""
+    return rx.box(
+        rx.vstack(
+            rx.text(item["fecha_resumen"], color=COLORS["primary"], size="1", font_weight="700"),
+            rx.text(item["titulo_jornada"], color=COLORS["text_main"], font_weight="700", size="2"),
+            rx.text(item["resumen_oro"], color=COLORS["text_muted"], size="1", line_height="1.4", italic=True),
+            spacing="2",
+            align_items="start",
+        ),
+        padding="1rem",
+        bg=COLORS["surface_high"],
+        border_radius="8px",
+        border_left=f"2px solid {COLORS['primary']}40",
+        width="100%",
+    )
+
+def insights_history_panel() -> rx.Component:
+    """Panel que muestra el historial recuperado de PostgreSQL."""
+    return rx.box(
+        rx.vstack(
+            # Header
+            rx.hstack(
+                rx.icon("history", size=18, color=COLORS["text_muted"]),
+                rx.text("Línea de Tiempo de Inteligencia", color=COLORS["text_main"], font_family="serif", size="5", font_weight="bold"),
+                rx.spacer(),
+                rx.button(
+                    "Actualizar Historial",
+                    on_click=InsightsState.fetch_history,
+                    is_loading=InsightsState.cargando_historial,
+                    size="1",
+                    variant="surface",
+                    color_scheme="gray",
+                ),
+                width="100%",
+                align_items="center",
+                margin_bottom="1.5rem",
+            ),
+
+            rx.grid(
+                # Columna 1: Alertas
+                rx.vstack(
+                    rx.hstack(
+                        rx.icon("zap", size=14, color=COLORS["primary"]),
+                        rx.text("Últimas Anomalías", color=COLORS["text_muted"], size="2", font_weight="bold"),
+                        spacing="2",
+                    ),
+                    rx.cond(
+                        InsightsState.historial_alertas.length() > 0,
+                        rx.vstack(
+                            rx.foreach(InsightsState.historial_alertas, _historical_alert_item),
+                            width="100%",
+                            spacing="3",
+                        ),
+                        rx.center(rx.text("No hay historial de alertas", color=COLORS["text_muted"], size="1"), width="100%", padding="2rem")
+                    ),
+                    width="100%",
+                    align_items="start",
+                    spacing="4",
+                ),
+
+                # Columna 2: Resúmenes
+                rx.vstack(
+                    rx.hstack(
+                        rx.icon("book-open", size=14, color=COLORS["primary"]),
+                        rx.text("Histórico de Resúmenes", color=COLORS["text_muted"], size="2", font_weight="bold"),
+                        spacing="2",
+                    ),
+                    rx.cond(
+                        InsightsState.historial_resumenes.length() > 0,
+                        rx.vstack(
+                            rx.foreach(InsightsState.historial_resumenes, _historical_summary_item),
+                            width="100%",
+                            spacing="3",
+                        ),
+                        rx.center(rx.text("No hay historial de resúmenes", color=COLORS["text_muted"], size="1"), width="100%", padding="2rem")
+                    ),
+                    width="100%",
+                    align_items="start",
+                    spacing="4",
+                ),
+                columns="2",
+                spacing="6",
+                width="100%",
+            ),
+            width="100%",
+        ),
+        padding="2rem",
+        bg=COLORS["surface"],
+        border_radius="12px",
+        border=f"1px solid {COLORS['text_muted']}20",
+        width="100%",
+        margin_top="2rem",
     )

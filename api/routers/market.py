@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from typing import Dict, Any, List
 from api.services.market_data import get_realtime_price, get_historical_data, get_market_news
+from api.services.insights_service import analyze_news_sentiments
 
 router = APIRouter(
     prefix="/market",
@@ -41,6 +42,8 @@ async def get_history(asset: str, period: str = "1mo") -> List[Dict[str, Any]]:
 @router.get("/news")
 async def get_news(limit: int = 8) -> List[Dict[str, Any]]:
     """
-    Returns real financial news for gold and oil, fetched via yfinance.
+    Returns real financial news for gold and oil, with AI sentiment analysis.
     """
-    return get_market_news(max_items=limit)
+    items = get_market_news(max_items=limit)
+    items_with_sentiment = await analyze_news_sentiments(items)
+    return items_with_sentiment

@@ -25,6 +25,7 @@ class InsightsState(rx.State):
     alerta_severidad: str = ""          # "INFORMATIVO" | "MODERADO" | "CRITICO"
     hay_alerta: bool = False
     cargando_alerta: bool = False
+    ultima_alerta_mostrada: str = ""
 
     # --- Resumen Diario ---
     resumen_fecha: str = ""
@@ -35,6 +36,11 @@ class InsightsState(rx.State):
     leccion_explicacion: str = ""
     hay_resumen: bool = False
     cargando_resumen: bool = False
+
+    # --- Historial ---
+    historial_alertas: list[dict] = []
+    historial_resumenes: list[dict] = []
+    cargando_historial: bool = False
 
     # --- Confirmación de verificación ---
     verificacion_msg: str = ""
@@ -107,6 +113,18 @@ class InsightsState(rx.State):
                         self.alerta_severidad = data.get("nivel_severidad", "")
                         self.hay_alerta = True
                         self.verificacion_msg = f"✅ Verificación completada a las {ahora}. Se encontró 1 alerta activa."
+
+                        # --- NUEVO: Disparar Toast si es una alerta nueva ---
+                        if self.alerta_titulo != self.ultima_alerta_mostrada:
+                            self.ultima_alerta_mostrada = self.alerta_titulo
+                            
+                            # Configurar color del toast según severidad
+                            if self.alerta_severidad == "CRITICO":
+                                yield rx.toast.error(f"🚨 {self.alerta_titulo}", description=self.alerta_mensaje, duration=8000)
+                            elif self.alerta_severidad == "MODERADO":
+                                yield rx.toast.warning(f"⚠️ {self.alerta_titulo}", description=self.alerta_mensaje, duration=6000)
+                            else:
+                                yield rx.toast.info(f"ℹ️ {self.alerta_titulo}", description=self.alerta_mensaje, duration=5000)
                 else:
                     self.error_msg = f"Error al consultar alertas: HTTP {res.status_code}"
 
@@ -148,4 +166,27 @@ class InsightsState(rx.State):
             self.error_msg = f"Error de conexión: {e}"
         finally:
             self.cargando_resumen = False
+            yield
+
+    async def fetch_history(self):
+        """Consulta los endpoints de historial en PostgreSQL."""
+        self.cargando_historial = True
+        yield
+        
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                # 1. Fetch Alerts History
+                res_alerts = await client.get(f"{API_URL}/insights/history/alerts?limit=10")
+                if res_alerts.status_code == 200:
+                    self.historial_alertas = res_alerts.json()
+                
+                # 2. Fetch Summaries History
+                res_sums = await client.get(f"{API_URL}/insights/history/summaries?limit=5")
+                if res_sums.status_code == 200:
+                    self.historial_resumenes = res_sums.json()
+                    
+        except Exception as e:
+            print(f"Error al cargar historial: {e}")
+        finally:
+            self.cargando_historial = False
             yield

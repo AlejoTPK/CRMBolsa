@@ -181,10 +181,24 @@ def news_card(item: rx.Var[dict]) -> rx.Component:
                     variant="surface",
                     size="1"
                 ),
+                rx.cond(
+                    item.contains("sentiment"),
+                    rx.badge(
+                        item["sentiment"],
+                        color_scheme=rx.cond(
+                            item["sentiment"] == "Alcista", "green",
+                            rx.cond(item["sentiment"] == "Bajista", "red", "gray")
+                        ),
+                        variant="solid",
+                        size="1"
+                    ),
+                    rx.box()
+                ),
                 rx.spacer(),
                 rx.text(item["publisher"], color=COLORS["text_muted"], size="1"),
                 width="100%",
-                align_items="center"
+                align_items="center",
+                spacing="2"
             ),
             rx.link(
                 item["title"],

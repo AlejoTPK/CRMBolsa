@@ -7,13 +7,16 @@ Expone los endpoints para el motor de IA:
   POST /api/generate-daily-summary → Genera el resumen diario con el LLM
 """
 from fastapi import APIRouter, HTTPException, status
-from typing import Optional
+from typing import Optional, List
+from sqlalchemy import select
 
-from api.models.insights import AlertaMercado, ResumenDiario
+from api.models.insights import AlertaMercado, ResumenDiario, LeccionDelDia
 from api.services.insights_service import (
     get_ultima_alerta,
     generar_resumen_diario,
 )
+from db.database import async_session
+from db.models import DBAlertaMercado, DBResumenDiario
 
 router = APIRouter(
     prefix="/insights",
@@ -86,3 +89,56 @@ async def generate_daily_summary():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error inesperado al generar el resumen: {str(e)}"
         )
+
+
+# ---------------------------------------------------------------------------
+# ENDPOINTS DE HISTÓRICO: Consultar persistencia en PostgreSQL
+# ---------------------------------------------------------------------------
+
+@router.get(
+    "/history/alerts",
+    response_model=List[AlertaMercado],
+    summary="Obtiene el historial de alertas de mercado"
+)
+async def get_alerts_history(limit: int = 50):
+    """Retorna las últimas N alertas guardadas en la base de datos."""
+    async with async_session() as session:
+        query = select(DBAlertaMercado).order_by(DBAlertaMercado.timestamp.desc()).limit(limit)
+        result = await session.execute(query)
+        db_alerts = result.scalars().all()
+        
+        # Mapear de DB a Pydantic
+        return [
+            AlertaMercado(
+                tipo_alerta=a.tipo_alerta,
+                titulo=a.titulo,
+                mensaje=a.mensaje,
+                nivel_severidad=a.nivel_severidad
+            ) for a in db_alerts
+        ]
+
+@router.get(
+    "/history/summaries",
+    response_model=List[ResumenDiario],
+    summary="Obtiene el historial de resúmenes diarios"
+)
+async def get_summaries_history(limit: int = 30):
+    """Retorna los últimos N resúmenes diarios guardados en la base de datos."""
+    async with async_session() as session:
+        query = select(DBResumenDiario).order_by(DBResumenDiario.fecha_resumen.desc()).limit(limit)
+        result = await session.execute(query)
+        db_summaries = result.scalars().all()
+        
+        # Mapear de DB a Pydantic
+        return [
+            ResumenDiario(
+                fecha_resumen=s.fecha_resumen.strftime("%Y-%m-%d"),
+                titulo_jornada=s.titulo_jornada,
+                resumen_oro=s.resumen_oro,
+                resumen_petroleo=s.resumen_petroleo,
+                leccion_del_dia=LeccionDelDia(
+                    concepto=s.leccion_concepto,
+                    explicacion=s.leccion_explicacion
+                )
+            ) for s in db_summaries
+        ]
