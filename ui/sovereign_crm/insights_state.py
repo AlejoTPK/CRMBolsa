@@ -5,13 +5,14 @@ Archivo: ui/sovereign_crm/insights_state.py
 Gestiona la comunicación entre el frontend Reflex y los endpoints de FastAPI.
 Se puede mezclar con AppState o usarse de forma independiente.
 """
+
 import reflex as rx
 import httpx
 import os
 from typing import Optional
 from dotenv import load_dotenv
 
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8001")
 
 
@@ -22,7 +23,7 @@ class InsightsState(rx.State):
     alerta_tipo: str = ""
     alerta_titulo: str = ""
     alerta_mensaje: str = ""
-    alerta_severidad: str = ""          # "INFORMATIVO" | "MODERADO" | "CRITICO"
+    alerta_severidad: str = ""  # "INFORMATIVO" | "MODERADO" | "CRITICO"
     hay_alerta: bool = False
     cargando_alerta: bool = False
     ultima_alerta_mostrada: str = ""
@@ -41,6 +42,7 @@ class InsightsState(rx.State):
     historial_alertas: list[dict] = []
     historial_resumenes: list[dict] = []
     cargando_historial: bool = False
+    error_historial: str = ""
 
     # --- Confirmación de verificación ---
     verificacion_msg: str = ""
@@ -55,9 +57,9 @@ class InsightsState(rx.State):
     def alerta_color(self) -> str:
         """Retorna el color de acento según el nivel de severidad."""
         mapa = {
-            "INFORMATIVO": "#4ade80",   # Verde suave
-            "MODERADO": "#facc15",       # Amarillo dorado
-            "CRITICO": "#f87171",        # Rojo coral
+            "INFORMATIVO": "#4ade80",  # Verde suave
+            "MODERADO": "#facc15",  # Amarillo dorado
+            "CRITICO": "#f87171",  # Rojo coral
         }
         return mapa.get(self.alerta_severidad, "#99907c")
 
@@ -97,6 +99,7 @@ class InsightsState(rx.State):
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 import datetime
+
                 res = await client.get(f"{API_URL}/insights/latest-alert")
 
                 if res.status_code == 200:
@@ -117,16 +120,30 @@ class InsightsState(rx.State):
                         # --- NUEVO: Disparar Toast si es una alerta nueva ---
                         if self.alerta_titulo != self.ultima_alerta_mostrada:
                             self.ultima_alerta_mostrada = self.alerta_titulo
-                            
+
                             # Configurar color del toast según severidad
                             if self.alerta_severidad == "CRITICO":
-                                yield rx.toast.error(f"🚨 {self.alerta_titulo}", description=self.alerta_mensaje, duration=8000)
+                                yield rx.toast.error(
+                                    f"🚨 {self.alerta_titulo}",
+                                    description=self.alerta_mensaje,
+                                    duration=8000,
+                                )
                             elif self.alerta_severidad == "MODERADO":
-                                yield rx.toast.warning(f"⚠️ {self.alerta_titulo}", description=self.alerta_mensaje, duration=6000)
+                                yield rx.toast.warning(
+                                    f"⚠️ {self.alerta_titulo}",
+                                    description=self.alerta_mensaje,
+                                    duration=6000,
+                                )
                             else:
-                                yield rx.toast.info(f"ℹ️ {self.alerta_titulo}", description=self.alerta_mensaje, duration=5000)
+                                yield rx.toast.info(
+                                    f"ℹ️ {self.alerta_titulo}",
+                                    description=self.alerta_mensaje,
+                                    duration=5000,
+                                )
                 else:
-                    self.error_msg = f"Error al consultar alertas: HTTP {res.status_code}"
+                    self.error_msg = (
+                        f"Error al consultar alertas: HTTP {res.status_code}"
+                    )
 
         except Exception as e:
             self.error_msg = f"No se pudo conectar al backend: {e}"
@@ -158,9 +175,13 @@ class InsightsState(rx.State):
                     self.leccion_explicacion = leccion.get("explicacion", "")
                     self.hay_resumen = True
                 elif res.status_code == 503:
-                    self.error_msg = "⚠️ El motor LLM no está configurado. Implementa call_llm()."
+                    self.error_msg = (
+                        "⚠️ El motor LLM no está configurado. Implementa call_llm()."
+                    )
                 else:
-                    self.error_msg = f"Error del servidor: {res.status_code} — {res.text}"
+                    self.error_msg = (
+                        f"Error del servidor: {res.status_code} — {res.text}"
+                    )
 
         except Exception as e:
             self.error_msg = f"Error de conexión: {e}"
@@ -171,22 +192,60 @@ class InsightsState(rx.State):
     async def fetch_history(self):
         """Consulta los endpoints de historial en PostgreSQL."""
         self.cargando_historial = True
+        self.error_historial = ""
         yield
-        
+
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
-                # 1. Fetch Alerts History
-                res_alerts = await client.get(f"{API_URL}/insights/history/alerts?limit=10")
+                res_alerts = await client.get(
+                    f"{API_URL}/insights/history/alerts?limit=10"
+                )
                 if res_alerts.status_code == 200:
                     self.historial_alertas = res_alerts.json()
-                
-                # 2. Fetch Summaries History
-                res_sums = await client.get(f"{API_URL}/insights/history/summaries?limit=5")
+                else:
+                    self.error_historial = (
+                        f"Error HTTP {res_alerts.status_code} al cargar alertas"
+                    )
+
+                res_sums = await client.get(
+                    f"{API_URL}/insights/history/summaries?limit=5"
+                )
                 if res_sums.status_code == 200:
                     self.historial_resumenes = res_sums.json()
-                    
+                else:
+                    if not self.error_historial:
+                        self.error_historial = (
+                            f"Error HTTP {res_sums.status_code} al cargar resúmenes"
+                        )
+
+        except httpx.ConnectError:
+            self.error_historial = "No se pudo conectar al backend. ¿Está corriendo la API en el puerto 8001?"
         except Exception as e:
-            print(f"Error al cargar historial: {e}")
+            self.error_historial = f"Error de conexión: {e}"
         finally:
             self.cargando_historial = False
             yield
+
+    async def seed_test_data(self):
+        """Genera datos de prueba en la BD y refresca el historial."""
+        self.cargando_historial = True
+        self.error_historial = ""
+        yield
+
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                res = await client.post(f"{API_URL}/insights/seed-test-data")
+                if res.status_code == 201:
+                    self.error_historial = ""
+                else:
+                    self.error_historial = (
+                        f"Error HTTP {res.status_code} al generar datos de prueba"
+                    )
+        except httpx.ConnectError:
+            self.error_historial = (
+                "No se pudo conectar al backend para generar datos de prueba."
+            )
+        except Exception as e:
+            self.error_historial = f"Error al generar datos: {e}"
+
+        await self.fetch_history()

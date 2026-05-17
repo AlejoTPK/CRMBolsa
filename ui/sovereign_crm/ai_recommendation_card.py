@@ -5,10 +5,11 @@ from .recommendations_state import RecommendationsState
 # Componentes de sugerencia individuales para cada ticker (tipado explícito)
 # --------------------------------------------------------------------------
 
+
 def _sugerencia_item(sugerencia: rx.Var) -> rx.Component:
     """Renderiza una sola sugerencia con ícono."""
     return rx.hstack(
-        rx.icon(tag="check-circle", size=14, color="#D4AF37"),
+        rx.icon(tag="circle-check-big", size=14, color="#D4AF37"),
         rx.text(
             sugerencia,
             font_size="0.95rem",
@@ -20,7 +21,9 @@ def _sugerencia_item(sugerencia: rx.Var) -> rx.Component:
     )
 
 
-def _chat_bubble(tendencia: rx.Var, sugerencias: rx.Var, disclaimer: rx.Var) -> rx.Component:
+def _chat_bubble(
+    tendencia: rx.Var, sugerencias: rx.Var, disclaimer: rx.Var
+) -> rx.Component:
     """
     Burbuja de chat reutilizable que recibe Vars tipadas directamente.
     """
@@ -28,29 +31,30 @@ def _chat_bubble(tendencia: rx.Var, sugerencias: rx.Var, disclaimer: rx.Var) -> 
         # Encabezado (Sovereign AI + badge de tendencia)
         rx.hstack(
             rx.icon(tag="bot", size=18, color="#D4AF37"),
-            rx.text("Sovereign AI", font_size="0.85rem", font_weight="bold", color="#D4AF37"),
+            rx.text(
+                "Sovereign AI", font_size="0.85rem", font_weight="bold", color="#D4AF37"
+            ),
             rx.spacer(),
             rx.badge(
                 tendencia,
                 variant="soft",
                 color_scheme=rx.cond(
-                    tendencia == "ALCISTA", "green",
-                    rx.cond(tendencia == "BAJISTA", "red", "gray")
+                    tendencia == "ALCISTA",
+                    "green",
+                    rx.cond(tendencia == "BAJISTA", "red", "gray"),
                 ),
             ),
             width="100%",
-            margin_bottom="0.75rem"
+            margin_bottom="0.75rem",
         ),
-
         # Lista de sugerencias pedagógicas
         rx.vstack(
             rx.foreach(sugerencias, _sugerencia_item),
             margin_bottom="1rem",
             spacing="3",
             width="100%",
-            align_items="start"
+            align_items="start",
         ),
-
         # Disclaimer obligatorio
         rx.box(
             rx.hstack(
@@ -62,14 +66,13 @@ def _chat_bubble(tendencia: rx.Var, sugerencias: rx.Var, disclaimer: rx.Var) -> 
                     font_weight="500",
                 ),
                 align_items="center",
-                spacing="2"
+                spacing="2",
             ),
             background_color="rgba(251, 191, 36, 0.1)",
             padding="0.5rem",
             border_radius="0.375rem",
-            border_left="3px solid #fbbf24"
+            border_left="3px solid #fbbf24",
         ),
-
         # Estilo glassmorphism / burbuja de chat
         background_color="rgba(30, 35, 45, 0.85)",
         backdrop_filter="blur(10px)",
@@ -78,7 +81,7 @@ def _chat_bubble(tendencia: rx.Var, sugerencias: rx.Var, disclaimer: rx.Var) -> 
         padding="1.25rem",
         box_shadow="0 4px 20px rgba(0, 0, 0, 0.25)",
         width="100%",
-        margin_top="0.75rem"
+        margin_top="0.75rem",
     )
 
 
@@ -112,14 +115,8 @@ def ai_recommendation_widget(ticker: str) -> rx.Component:
             color_scheme="amber",
             border_radius="2rem",
         ),
-
         # Burbuja de chat (solo visible cuando hay datos)
-        rx.cond(
-            loaded,
-            _chat_bubble(tendencia, sugerencias, disclaimer),
-            rx.box()
-        ),
-
+        rx.cond(loaded, _chat_bubble(tendencia, sugerencias, disclaimer), rx.box()),
         # Mensaje de error
         rx.cond(
             RecommendationsState.error_msg != "",
@@ -127,11 +124,10 @@ def ai_recommendation_widget(ticker: str) -> rx.Component:
                 RecommendationsState.error_msg,
                 color="red",
                 font_size="0.8rem",
-                margin_top="0.5rem"
+                margin_top="0.5rem",
             ),
-            rx.box()
+            rx.box(),
         ),
-
         align_items="start",
         margin_top="1rem",
         width="100%",

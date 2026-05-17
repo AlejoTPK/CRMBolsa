@@ -6,6 +6,7 @@ Exports:
   sovereign_insights_panel()  → Panel completo de Insights (alerta + resumen diario)
   quick_alert_card()          → Solo la tarjeta de alerta (para usar en el header)
 """
+
 import reflex as rx
 from .insights_state import InsightsState
 
@@ -25,6 +26,7 @@ COLORS = {
 # ---------------------------------------------------------------------------
 # COMPONENTE 1: Tarjeta de Alerta Rápida
 # ---------------------------------------------------------------------------
+
 
 def _estado_sin_alerta() -> rx.Component:
     """Estado vacío cuando no hay alertas activas."""
@@ -87,11 +89,9 @@ def quick_alert_card() -> rx.Component:
                 align_items="center",
                 margin_bottom="1rem",
             ),
-
             # Contenido condicional: alerta activa o estado vacío
             rx.cond(
                 InsightsState.hay_alerta,
-
                 # --- ALERTA ACTIVA ---
                 rx.box(
                     rx.vstack(
@@ -129,7 +129,10 @@ def quick_alert_card() -> rx.Component:
                                 InsightsState.alerta_severidad,
                                 variant="solid",
                                 size="1",
-                                style={"background": InsightsState.alerta_color, "color": "#000"},
+                                style={
+                                    "background": InsightsState.alerta_color,
+                                    "color": "#000",
+                                },
                             ),
                             spacing="2",
                         ),
@@ -146,11 +149,9 @@ def quick_alert_card() -> rx.Component:
                     width="100%",
                     transition="all 0.3s ease",
                 ),
-
                 # --- SIN ALERTAS ---
                 _estado_sin_alerta(),
             ),
-
             # Mensaje de confirmación post-verificación
             rx.cond(
                 InsightsState.verificacion_msg != "",
@@ -172,7 +173,6 @@ def quick_alert_card() -> rx.Component:
                 ),
                 rx.box(),
             ),
-
             # Mensaje de error si falla la conexión
             rx.cond(
                 InsightsState.error_msg != "",
@@ -185,7 +185,6 @@ def quick_alert_card() -> rx.Component:
                 ),
                 rx.box(),
             ),
-
             spacing="0",
             align_items="start",
             width="100%",
@@ -207,6 +206,7 @@ def quick_alert_card() -> rx.Component:
 # ---------------------------------------------------------------------------
 # COMPONENTE 2: Panel de Resumen Diario
 # ---------------------------------------------------------------------------
+
 
 def _leccion_card() -> rx.Component:
     """Tarjeta especial para la Lección del Día."""
@@ -286,11 +286,9 @@ def combined_daily_summary_panel() -> rx.Component:
                 align_items="center",
                 margin_bottom="1rem",
             ),
-
             # Contenido condicional: resumen activo o estado vacío
             rx.cond(
                 InsightsState.hay_resumen,
-
                 # --- RESUMEN ACTIVO ---
                 rx.vstack(
                     # Fecha y Título
@@ -315,51 +313,91 @@ def combined_daily_summary_panel() -> rx.Component:
                         width="100%",
                         margin_bottom="0.5rem",
                     ),
-
                     # Grid con los dos activos (Oro y Petróleo)
                     rx.grid(
                         # Caja de Oro
                         rx.box(
                             rx.vstack(
                                 rx.hstack(
-                                    rx.box(width="10px", height="10px", bg=COLORS["primary"], border_radius="3px"),
-                                    rx.text("ORO — XAU/USD", color=COLORS["primary"], size="1", font_weight="700", letter_spacing="1px"),
+                                    rx.box(
+                                        width="10px",
+                                        height="10px",
+                                        bg=COLORS["primary"],
+                                        border_radius="3px",
+                                    ),
+                                    rx.text(
+                                        "ORO — XAU/USD",
+                                        color=COLORS["primary"],
+                                        size="1",
+                                        font_weight="700",
+                                        letter_spacing="1px",
+                                    ),
                                     align_items="center",
                                     spacing="2",
                                 ),
-                                rx.text(InsightsState.resumen_oro, color=COLORS["text_muted"], size="2", line_height="1.6"),
-                                spacing="2", align_items="start",
+                                rx.text(
+                                    InsightsState.resumen_oro,
+                                    color=COLORS["text_muted"],
+                                    size="2",
+                                    line_height="1.6",
+                                ),
+                                spacing="2",
+                                align_items="start",
                             ),
-                            padding="1rem", bg=COLORS["surface_high"], border_radius="10px", border_left=f"3px solid {COLORS['primary']}", width="100%", height="100%"
+                            padding="1rem",
+                            bg=COLORS["surface_high"],
+                            border_radius="10px",
+                            border_left=f"3px solid {COLORS['primary']}",
+                            width="100%",
+                            height="100%",
                         ),
                         # Caja de Petróleo
                         rx.box(
                             rx.vstack(
                                 rx.hstack(
-                                    rx.box(width="10px", height="10px", bg="#B0C4DE", border_radius="3px"),
-                                    rx.text("PETRÓLEO — WTI", color="#B0C4DE", size="1", font_weight="700", letter_spacing="1px"),
+                                    rx.box(
+                                        width="10px",
+                                        height="10px",
+                                        bg="#B0C4DE",
+                                        border_radius="3px",
+                                    ),
+                                    rx.text(
+                                        "PETRÓLEO — WTI",
+                                        color="#B0C4DE",
+                                        size="1",
+                                        font_weight="700",
+                                        letter_spacing="1px",
+                                    ),
                                     align_items="center",
                                     spacing="2",
                                 ),
-                                rx.text(InsightsState.resumen_petroleo, color=COLORS["text_muted"], size="2", line_height="1.6"),
-                                spacing="2", align_items="start",
+                                rx.text(
+                                    InsightsState.resumen_petroleo,
+                                    color=COLORS["text_muted"],
+                                    size="2",
+                                    line_height="1.6",
+                                ),
+                                spacing="2",
+                                align_items="start",
                             ),
-                            padding="1rem", bg=COLORS["surface_high"], border_radius="10px", border_left="3px solid #B0C4DE", width="100%", height="100%"
+                            padding="1rem",
+                            bg=COLORS["surface_high"],
+                            border_radius="10px",
+                            border_left="3px solid #B0C4DE",
+                            width="100%",
+                            height="100%",
                         ),
                         columns="2",
                         spacing="4",
                         width="100%",
-                        margin_bottom="1rem"
+                        margin_bottom="1rem",
                     ),
-
                     # Lección del Día
                     _leccion_card(),
-
                     spacing="4",
                     align_items="start",
                     width="100%",
                 ),
-
                 # --- SIN RESUMEN ---
                 rx.center(
                     rx.vstack(
@@ -384,7 +422,6 @@ def combined_daily_summary_panel() -> rx.Component:
                     width="100%",
                 ),
             ),
-
             # Error
             rx.cond(
                 InsightsState.error_msg != "",
@@ -397,7 +434,6 @@ def combined_daily_summary_panel() -> rx.Component:
                 ),
                 rx.box(),
             ),
-
             spacing="0",
             align_items="start",
             width="100%",
@@ -408,7 +444,7 @@ def combined_daily_summary_panel() -> rx.Component:
         border=f"1px solid {COLORS['text_muted']}20",
         box_shadow="0 8px 24px rgba(0,0,0,0.3)",
         width="100%",
-        margin_bottom="2rem"
+        margin_bottom="2rem",
     )
 
 
@@ -416,11 +452,12 @@ def combined_daily_summary_panel() -> rx.Component:
 # COMPONENTE MAESTRO: Panel Completo de Sovereign Insights
 # ---------------------------------------------------------------------------
 
+
 def sovereign_insights_panel() -> rx.Component:
     """
     Componente completo de Sovereign Insights.
     Combina la alerta rápida y el resumen diario en un layout vertical.
-    
+
     Uso en sovereign_crm.py:
         from .insights_components import sovereign_insights_panel
         # ... dentro del layout principal:
@@ -441,13 +478,10 @@ def sovereign_insights_panel() -> rx.Component:
             spacing="3",
             margin_bottom="1.5rem",
         ),
-
         # Tarjeta de Alerta Rápida
         quick_alert_card(),
-
         # Panel de Resumen Diario Unificado
         combined_daily_summary_panel(),
-
         spacing="4",
         align_items="start",
         width="100%",
@@ -458,6 +492,7 @@ def sovereign_insights_panel() -> rx.Component:
 # COMPONENTE 3: Historial de Insights (Alertas y Resúmenes)
 # ---------------------------------------------------------------------------
 
+
 def _historical_alert_item(item: rx.Var[dict]) -> rx.Component:
     """Renderiza una alerta individual del historial."""
     return rx.box(
@@ -466,18 +501,25 @@ def _historical_alert_item(item: rx.Var[dict]) -> rx.Component:
                 rx.badge(item["tipo_alerta"], size="1", variant="surface"),
                 rx.spacer(),
                 rx.badge(
-                    item["nivel_severidad"], 
-                    size="1", 
+                    item["nivel_severidad"],
+                    size="1",
                     variant="solid",
                     color_scheme=rx.cond(
-                        item["nivel_severidad"] == "CRITICO", "red",
-                        rx.cond(item["nivel_severidad"] == "MODERADO", "yellow", "green")
-                    )
+                        item["nivel_severidad"] == "CRITICO",
+                        "red",
+                        rx.cond(
+                            item["nivel_severidad"] == "MODERADO", "yellow", "green"
+                        ),
+                    ),
                 ),
                 width="100%",
             ),
-            rx.text(item["titulo"], color=COLORS["text_main"], font_weight="700", size="2"),
-            rx.text(item["mensaje"], color=COLORS["text_muted"], size="1", line_height="1.5"),
+            rx.text(
+                item["titulo"], color=COLORS["text_main"], font_weight="700", size="2"
+            ),
+            rx.text(
+                item["mensaje"], color=COLORS["text_muted"], size="1", line_height="1.5"
+            ),
             spacing="2",
             align_items="start",
         ),
@@ -488,13 +530,30 @@ def _historical_alert_item(item: rx.Var[dict]) -> rx.Component:
         width="100%",
     )
 
+
 def _historical_summary_item(item: rx.Var[dict]) -> rx.Component:
     """Renderiza un resumen individual del historial."""
     return rx.box(
         rx.vstack(
-            rx.text(item["fecha_resumen"], color=COLORS["primary"], size="1", font_weight="700"),
-            rx.text(item["titulo_jornada"], color=COLORS["text_main"], font_weight="700", size="2"),
-            rx.text(item["resumen_oro"], color=COLORS["text_muted"], size="1", line_height="1.4", italic=True),
+            rx.text(
+                item["fecha_resumen"],
+                color=COLORS["primary"],
+                size="1",
+                font_weight="700",
+            ),
+            rx.text(
+                item["titulo_jornada"],
+                color=COLORS["text_main"],
+                font_weight="700",
+                size="2",
+            ),
+            rx.text(
+                item["resumen_oro"],
+                color=COLORS["text_muted"],
+                size="1",
+                line_height="1.4",
+                italic=True,
+            ),
             spacing="2",
             align_items="start",
         ),
@@ -505,6 +564,7 @@ def _historical_summary_item(item: rx.Var[dict]) -> rx.Component:
         width="100%",
     )
 
+
 def insights_history_panel() -> rx.Component:
     """Panel que muestra el historial recuperado de PostgreSQL."""
     return rx.box(
@@ -512,7 +572,13 @@ def insights_history_panel() -> rx.Component:
             # Header
             rx.hstack(
                 rx.icon("history", size=18, color=COLORS["text_muted"]),
-                rx.text("Línea de Tiempo de Inteligencia", color=COLORS["text_main"], font_family="serif", size="5", font_weight="bold"),
+                rx.text(
+                    "Línea de Tiempo de Inteligencia",
+                    color=COLORS["text_main"],
+                    font_family="serif",
+                    size="5",
+                    font_weight="bold",
+                ),
                 rx.spacer(),
                 rx.button(
                     "Actualizar Historial",
@@ -522,48 +588,97 @@ def insights_history_panel() -> rx.Component:
                     variant="surface",
                     color_scheme="gray",
                 ),
+                rx.button(
+                    rx.icon("flask-conical", size=14),
+                    "Generar Prueba",
+                    on_click=InsightsState.seed_test_data,
+                    is_loading=InsightsState.cargando_historial,
+                    size="1",
+                    variant="surface",
+                    color_scheme="gold",
+                ),
                 width="100%",
                 align_items="center",
                 margin_bottom="1.5rem",
             ),
-
+            rx.cond(
+                InsightsState.error_historial != "",
+                rx.callout(
+                    InsightsState.error_historial,
+                    icon="triangle-alert",
+                    color_scheme="red",
+                    variant="soft",
+                    width="100%",
+                    margin_bottom="1rem",
+                ),
+            ),
             rx.grid(
                 # Columna 1: Alertas
                 rx.vstack(
                     rx.hstack(
                         rx.icon("zap", size=14, color=COLORS["primary"]),
-                        rx.text("Últimas Anomalías", color=COLORS["text_muted"], size="2", font_weight="bold"),
+                        rx.text(
+                            "Últimas Anomalías",
+                            color=COLORS["text_muted"],
+                            size="2",
+                            font_weight="bold",
+                        ),
                         spacing="2",
                     ),
                     rx.cond(
                         InsightsState.historial_alertas.length() > 0,
                         rx.vstack(
-                            rx.foreach(InsightsState.historial_alertas, _historical_alert_item),
+                            rx.foreach(
+                                InsightsState.historial_alertas, _historical_alert_item
+                            ),
                             width="100%",
                             spacing="3",
                         ),
-                        rx.center(rx.text("No hay historial de alertas", color=COLORS["text_muted"], size="1"), width="100%", padding="2rem")
+                        rx.center(
+                            rx.text(
+                                "No hay historial de alertas",
+                                color=COLORS["text_muted"],
+                                size="1",
+                            ),
+                            width="100%",
+                            padding="2rem",
+                        ),
                     ),
                     width="100%",
                     align_items="start",
                     spacing="4",
                 ),
-
                 # Columna 2: Resúmenes
                 rx.vstack(
                     rx.hstack(
                         rx.icon("book-open", size=14, color=COLORS["primary"]),
-                        rx.text("Histórico de Resúmenes", color=COLORS["text_muted"], size="2", font_weight="bold"),
+                        rx.text(
+                            "Histórico de Resúmenes",
+                            color=COLORS["text_muted"],
+                            size="2",
+                            font_weight="bold",
+                        ),
                         spacing="2",
                     ),
                     rx.cond(
                         InsightsState.historial_resumenes.length() > 0,
                         rx.vstack(
-                            rx.foreach(InsightsState.historial_resumenes, _historical_summary_item),
+                            rx.foreach(
+                                InsightsState.historial_resumenes,
+                                _historical_summary_item,
+                            ),
                             width="100%",
                             spacing="3",
                         ),
-                        rx.center(rx.text("No hay historial de resúmenes", color=COLORS["text_muted"], size="1"), width="100%", padding="2rem")
+                        rx.center(
+                            rx.text(
+                                "No hay historial de resúmenes",
+                                color=COLORS["text_muted"],
+                                size="1",
+                            ),
+                            width="100%",
+                            padding="2rem",
+                        ),
                     ),
                     width="100%",
                     align_items="start",
