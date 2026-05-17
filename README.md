@@ -8,12 +8,14 @@
 
 ## 🚀 Características Principales
 
-*   📊 **Monitor de Commodities Avanzado:** Cotizaciones en tiempo real e histórico de precios mediante integración directa con `yfinance`. Gráficos interactivos construidos con Recharts.
+*   🏛️ **Lobby de Acceso Premium (Landing Page):** Un portal interactivo de entrada (`/`) con animaciones fluidas, destellos de fondo tipo *twinkle*, prueba social, grilla de mercados globales simulados, tarifas de suscripción y sección interactiva de FAQ.
+*   📊 **Monitor de Commodities Avanzado:** Panel de control reactivo (`/dashboard`) con cotizaciones en tiempo real e histórico de precios mediante integración directa con `yfinance` y actualización en vivo vía WebSockets. Gráficos interactivos de velas y líneas construidos con Plotly.
+*   💼 **Simulador de Portafolio:** Visualización dinámica de la distribución de activos representados con un gráfico de donut interactivo conectado al valor actual de los activos.
 *   🤖 **Sovereign Insights (Motor de IA):**
-    *   **Alertas Rápidas (Monitor 24/7):** Un proceso en segundo plano de FastAPI que audita los precios cada 30 minutos. Si detecta una anomalía (variación mayor al ±2%), invoca al modelo LLM de **Groq** (`llama-3.3-70b-versatile`) para generar alertas explicativas y pedagógicas.
-    *   **Resumen Diario:** Al cierre de la jornada, la IA consolida los datos de mercado y genera un reporte en lenguaje amigable, incluyendo una *"Lección del Día"* para fomentar la educación financiera.
-*   📰 **Noticias de Impacto:** Feed curado de noticias de última hora extraído directamente desde Yahoo Finance.
-*   🎨 **Arquitectura UI en Python:** Frontend completamente reactivo construido en **Reflex**, utilizando un diseño *Glassmorphism* elegante, con esquemas de colores responsivos y un diseño adaptable ("Obsidian Sovereign Design").
+    *   **Alertas Rápidas (Monitor 24/7):** Un proceso en segundo plano de FastAPI que audita los precios cada 30 minutos. Si detecta una anomalía (variación mayor al ±2%), invoca al modelo LLM de **Groq** (`llama-3.3-70b-versatile`) para generar alertas explicativas con persistencia automática en PostgreSQL.
+    *   **Resumen Diario Automático:** Al final del día, consolida los datos de la jornada e invoca a la IA para generar reportes estructurados con una *"Lección del Día"*, asegurando no repetir lecciones pasadas e implementando actualizaciones inteligentes de tipo upsert.
+*   📰 **Noticias de Impacto & Sentimiento IA:** Feed enriquecido de noticias extraído directamente desde Yahoo Finance y procesado por el LLM para calificar el sentimiento en tiempo real.
+*   🎨 **Obsidian Sovereign UI:** Diseño visual e interactivo construido completamente en Python utilizando **Reflex** con un diseño *Glassmorphism* sofisticado, colores cuidadosamente calibrados y transiciones fluidas.
 
 ---
 
@@ -25,30 +27,35 @@
 *   **Data & Análisis:** `yfinance`, `pandas`.
 *   **Base de Datos:** PostgreSQL (con TimescaleDB para series temporales), gestionado con `sqlalchemy` y migraciones con `alembic`.
 *   **WebSockets:** Ingesta de datos en tiempo real mediante la API de Finnhub (`websockets`).
-*   **Visualización:** Gráficos de velas japonesas (Candlesticks) renderizados con `plotly`.
+*   **Visualización:** Gráficos avanzados renderizados con `plotly`.
 
 ---
 
 ## 📂 Estructura del Proyecto
 
+```text
 AplicaciónWebBolsa/
 ├── api/
-│   ├── main.py                 # Punto de entrada de FastAPI
-│   ├── routers/                # Endpoints REST y WebSockets (ws_router.py)
-│   └── services/               # Lógica de negocio (finnhub_client.py, ws_manager.py)
+│   ├── main.py                 # Punto de entrada de FastAPI y background worker
+│   ├── routers/                # Endpoints REST e inyección de insights.py
+│   └── services/               # Lógica de negocio (market_data.py, insights_service.py)
 ├── db/
 │   ├── database.py             # Configuración de TimescaleDB/PostgreSQL asyncpg
-│   ├── models.py               # Modelos de SQLAlchemy (ej. MarketTick)
+│   ├── models.py               # Modelos de SQLAlchemy (ej. DBAlertaMercado, DBResumenDiario)
 │   └── migrations/             # Revisiones generadas por Alembic
 ├── ui/
 │   ├── rxconfig.py             # Configuración del proyecto Reflex
 │   └── sovereign_crm/
-│       ├── sovereign_crm.py    # Layout principal del Dashboard
-│       ├── state.py            # Estado global (AppState) y lógica WebSocket de la UI
-│       └── components.py       # Componentes de interfaz y gráficos de Plotly
-├── .env                        # Variables de entorno (GROQ_API_KEY, DATABASE_URL, FINNHUB_API_KEY)
+│       ├── sovereign_crm.py    # Layout principal y routing del Dashboard
+│       ├── lobby.py            # Vista de la Landing Page Premium (Lobby)
+│       ├── state.py            # Estado de Reflex (AppState) y streaming WebSocket
+│       ├── insights_state.py   # Gestión de estado de alertas e historiales de IA
+│       ├── components.py       # Estilos compartidos, navbar y tarjetas generales
+│       ├── insights_components.py # Componentes dedicados para las alertas e historial de IA
+│       └── ai_recommendation_card.py # Tarjeta interactiva de recomendación IA
+├── .env                        # Variables de entorno (GROQ_API_KEY, DATABASE_URL, API_URL)
 ├── alembic.ini                 # Configuración del entorno de migraciones
-└── requirements.txt            # Dependencias del proyecto (reflex>=0.9.1, pydantic>=2.11, plotly)
+└── requirements.txt            # Dependencias del proyecto (reflex>=0.9.1, plotly, httpx)
 ```
 
 ---
