@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -10,25 +11,58 @@ import os
 load_dotenv()
 
 from api.routers import market, insights, ws_router, recommendations
-from api.services.insights_service import monitor_loop
+from api.services.insights_service import monitor_loop, generar_resumen_diario
 from api.services.finnhub_client import finnhub_ws_client
+from db.database import engine
+from db.models import Base
+
+
+async def _init_database():
+    """Crea las tablas si no existen y genera resumen diario inicial."""
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("[Sovereign API] ✅ Tablas de base de datos verificadas/creadas.")
+    except Exception as e:
+        print(f"[Sovereign API] ⚠️ No se pudieron verificar las tablas: {e}")
+        return
+
+    try:
+        from sqlalchemy import select
+        from db.models import DBResumenDiario
+        from db.database import async_session
+
+        hoy = datetime.date.today()
+        async with async_session() as session:
+            result = await session.execute(
+                select(DBResumenDiario).where(DBResumenDiario.fecha_resumen == hoy)
+            )
+            existe = result.scalar_one_or_none()
+
+        if not existe:
+            print("[Sovereign API] 📝 Generando primer resumen diario...")
+            await generar_resumen_diario()
+        else:
+            print(f"[Sovereign API] ✅ Ya existe resumen para hoy ({hoy}).")
+    except Exception as e:
+        print(f"[Sovereign API] ⚠️ No se pudo generar resumen inicial: {e}")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     Gestiona el ciclo de vida de la aplicación.
-    - Al iniciar: lanza el monitor de anomalías en segundo plano.
-    - Al cerrar: cancela la tarea limpiamente.
+    - Al iniciar: crea tablas, lanza monitores, genera resumen inicial.
+    - Al cerrar: cancela tareas limpiamente.
     """
-    # STARTUP: lanzar el monitor cada 30 minutos y el cliente de Finnhub
+    await _init_database()
+
     monitor_task = asyncio.create_task(monitor_loop())
     finnhub_task = asyncio.create_task(finnhub_ws_client())
-    
+
     print("[Sovereign API] 🚀 Background task de anomalías iniciada.")
     print("[Sovereign API] 🚀 Cliente WebSocket de Finnhub iniciado.")
     yield
-    # SHUTDOWN: cancelar las tareas
     monitor_task.cancel()
     finnhub_task.cancel()
     try:
@@ -66,7 +100,7 @@ def read_root():
     return {
         "status": "Sovereign CRM API is running.",
         "version": "2.0.0",
-        "modules": ["market", "insights"]
+        "modules": ["market", "insights"],
     }
 
 

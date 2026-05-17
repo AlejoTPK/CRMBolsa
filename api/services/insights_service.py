@@ -6,6 +6,7 @@ Contiene:
 - La tarea en segundo plano que revisa anomalías cada 30 minutos.
 - La lógica para generar el Resumen Diario usando yfinance + LLM.
 """
+
 import asyncio
 import datetime
 import json
@@ -29,11 +30,12 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 _groq_client = AsyncGroq(api_key=os.getenv("GROQ_API_KEY"))
 
+
 async def call_llm(prompt: str) -> str:
     """
     Llama a la API de Groq con el modelo llama-3.3-70b-versatile.
     Retorna el contenido de la respuesta como string JSON.
-    
+
     - response_format json_object: garantiza que Groq devuelva JSON válido.
     - temperature 0.3: respuestas precisas y técnicas, evitando redundancias filosóficas.
     - max_tokens 1024: suficiente para los JSONs de alertas y resúmenes.
@@ -61,7 +63,6 @@ async def call_llm(prompt: str) -> str:
     return chat_completion.choices[0].message.content
 
 
-
 # ---------------------------------------------------------------------------
 # Estado en memoria para la última alerta (compartido entre requests)
 # En producción, esto se persistiría en Supabase.
@@ -87,7 +88,7 @@ COMMODITIES_MONITOR = {
     "XAU": "GC=F",
     "WTI": "CL=F",
 }
-UMBRAL_VARIACION_PCT = 2.0  # Alerta si el precio varía más de ±2%
+UMBRAL_VARIACION_PCT = 0.5  # Alerta si el precio varía más de ±0.5%
 
 
 async def _revisar_anomalia_precio():
@@ -115,14 +116,16 @@ async def _revisar_anomalia_precio():
             if abs(variacion_pct) >= UMBRAL_VARIACION_PCT:
                 # --- Construir el prompt para el LLM ---
                 direccion = "subida" if variacion_pct > 0 else "caída"
-                severidad_sugerida = "CRITICO" if abs(variacion_pct) >= 4 else "MODERADO"
+                severidad_sugerida = (
+                    "CRITICO" if abs(variacion_pct) >= 4 else "MODERADO"
+                )
 
                 prompt = f"""
 Eres el motor de análisis de "Sovereign", un CRM financiero para inversores novatos.
 Detectamos una anomalía de mercado. Genera una alerta pedagógica en JSON estricto.
 
 DATOS DE MERCADO:
-- Activo: {codigo} ({'Oro XAU/USD' if codigo == 'XAU' else 'Petróleo Crudo WTI'})
+- Activo: {codigo} ({"Oro XAU/USD" if codigo == "XAU" else "Petróleo Crudo WTI"})
 - Precio anterior (hace 30 min): ${precio_anterior:.2f}
 - Precio actual: ${precio_actual:.2f}
 - Variación: {variacion_pct:+.2f}% ({direccion})
@@ -144,19 +147,21 @@ EJEMPLO DE FORMATO:
                     datos_alerta = json.loads(respuesta_llm)
                     alerta = AlertaMercado(**datos_alerta)
                     _ultima_alerta_cache = alerta
-                    
+
                     # Persistencia en Base de Datos (PostgreSQL)
                     async with async_session() as session:
                         db_alerta = DBAlertaMercado(
                             tipo_alerta=alerta.tipo_alerta,
                             titulo=alerta.titulo,
                             mensaje=alerta.mensaje,
-                            nivel_severidad=alerta.nivel_severidad
+                            nivel_severidad=alerta.nivel_severidad,
                         )
                         session.add(db_alerta)
                         await session.commit()
-                        
-                    print(f"[Insights Monitor] ✅ Alerta generada y guardada: {alerta.titulo}")
+
+                    print(
+                        f"[Insights Monitor] ✅ Alerta generada y guardada: {alerta.titulo}"
+                    )
                 except Exception as e:
                     print(f"[Insights Monitor] ❌ Error al generar alerta LLM: {e}")
 
@@ -167,14 +172,47 @@ EJEMPLO DE FORMATO:
             print(f"[Insights Monitor] ❌ Error al revisar {codigo}: {e}")
 
 
+_ultima_fecha_resumen: datetime.date | None = None
+
+
+async def _auto_generar_resumen_si_corresponde():
+    """Genera resumen diario automáticamente una vez al día."""
+    global _ultima_fecha_resumen
+    hoy = datetime.date.today()
+
+    if _ultima_fecha_resumen == hoy:
+        return
+
+    try:
+        from sqlalchemy import select
+        from db.database import async_session
+        from db.models import DBResumenDiario
+
+        async with async_session() as session:
+            result = await session.execute(
+                select(DBResumenDiario).where(DBResumenDiario.fecha_resumen == hoy)
+            )
+            existe = result.scalar_one_or_none()
+
+        if not existe:
+            print(f"[Insights Monitor] 📝 Auto-generando resumen diario para {hoy}...")
+            await generar_resumen_diario()
+
+        _ultima_fecha_resumen = hoy
+    except Exception as e:
+        print(f"[Insights Monitor] ⚠️ Error en auto-resumen diario: {e}")
+
+
 async def monitor_loop():
     """
     Bucle infinito que ejecuta la revisión de anomalías cada 30 minutos.
+    También auto-genera un resumen diario una vez al día.
     Se lanza como background task en el startup de FastAPI.
     """
     print("[Insights Monitor] 🔄 Monitor de anomalías iniciado. Revisión cada 30 min.")
     while True:
         await _revisar_anomalia_precio()
+        await _auto_generar_resumen_si_corresponde()
         await asyncio.sleep(30 * 60)  # 30 minutos
 
 
@@ -186,6 +224,7 @@ def get_ultima_alerta() -> Optional[AlertaMercado]:
 # ---------------------------------------------------------------------------
 # MÓDULO 1B: RESUMEN DIARIO — Batch Processing al cierre del mercado
 # ---------------------------------------------------------------------------
+
 
 def _recopilar_datos_jornada() -> dict:
     """
@@ -223,7 +262,7 @@ def _recopilar_datos_jornada() -> dict:
                 "minimo": minimo,
                 "variacion_pct": variacion_pct,
                 "volumen": volumen,
-                "direccion": "📈 alza" if variacion_pct > 0 else "📉 baja"
+                "direccion": "📈 alza" if variacion_pct > 0 else "📉 baja",
             }
         except Exception as e:
             resultado[codigo] = {"error": str(e)}
@@ -268,7 +307,7 @@ async def generar_resumen_diario() -> ResumenDiario:
         "El riesgo sistemático vs no sistemático",
         "Qué es el volumen de trading y por qué importa",
         "El efecto de las tasas de interés en los mercados",
-        "Bulls (Toros) vs Bears (Osos): Psicología del mercado"
+        "Bulls (Toros) vs Bears (Osos): Psicología del mercado",
     ]
     tema_leccion = random.choice(conceptos_leccion)
 
@@ -302,20 +341,38 @@ aprender finanzas, no un trader experto. NUNCA repitas lecciones de días anteri
     # Pydantic valida la estructura antes de retornar
     resumen = ResumenDiario(**datos_resumen)
 
-    # Persistencia en Base de Datos (PostgreSQL)
+    # Persistencia en Base de Datos (PostgreSQL) — upsert por si ya existe
     try:
+        from sqlalchemy import select
+
         async with async_session() as session:
-            db_resumen = DBResumenDiario(
-                fecha_resumen=datetime.datetime.strptime(resumen.fecha_resumen, "%Y-%m-%d").date(),
-                titulo_jornada=resumen.titulo_jornada,
-                resumen_oro=resumen.resumen_oro,
-                resumen_petroleo=resumen.resumen_petroleo,
-                leccion_concepto=resumen.leccion_del_dia.concepto,
-                leccion_explicacion=resumen.leccion_del_dia.explicacion
+            fecha = datetime.datetime.strptime(resumen.fecha_resumen, "%Y-%m-%d").date()
+            result = await session.execute(
+                select(DBResumenDiario).where(DBResumenDiario.fecha_resumen == fecha)
             )
-            session.add(db_resumen)
+            existente = result.scalar_one_or_none()
+
+            if existente:
+                existente.titulo_jornada = resumen.titulo_jornada
+                existente.resumen_oro = resumen.resumen_oro
+                existente.resumen_petroleo = resumen.resumen_petroleo
+                existente.leccion_concepto = resumen.leccion_del_dia.concepto
+                existente.leccion_explicacion = resumen.leccion_del_dia.explicacion
+                print(f"[Insights Service] 🔄 Resumen diario actualizado para {fecha}")
+            else:
+                db_resumen = DBResumenDiario(
+                    fecha_resumen=fecha,
+                    titulo_jornada=resumen.titulo_jornada,
+                    resumen_oro=resumen.resumen_oro,
+                    resumen_petroleo=resumen.resumen_petroleo,
+                    leccion_concepto=resumen.leccion_del_dia.concepto,
+                    leccion_explicacion=resumen.leccion_del_dia.explicacion,
+                )
+                session.add(db_resumen)
+                print(
+                    f"[Insights Service] ✅ Resumen diario guardado en DB para la fecha {resumen.fecha_resumen}"
+                )
             await session.commit()
-            print(f"[Insights Service] ✅ Resumen diario guardado en DB para la fecha {resumen.fecha_resumen}")
     except Exception as e:
         print(f"[Insights Service] ⚠️ Error al persistir resumen en DB: {e}")
 
@@ -325,6 +382,7 @@ aprender finanzas, no un trader experto. NUNCA repitas lecciones de días anteri
 # ---------------------------------------------------------------------------
 # MÓDULO 1C: ANÁLISIS DE SENTIMIENTO DE NOTICIAS
 # ---------------------------------------------------------------------------
+
 
 async def analyze_news_sentiments(news_items: list[dict]) -> list[dict]:
     """
